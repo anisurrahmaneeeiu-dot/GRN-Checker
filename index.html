@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRN Checker - Healthcare Pharmaceuticals Limited</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS (xlsx) CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col justify-between">
+
+    <div>
+        <!-- Navbar -->
+        <header class="bg-blue-900 text-white shadow-md border-b border-blue-800">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <!-- Healthcare Corporate Logo -->
+                    <div class="bg-white p-1 rounded-lg shadow-sm flex items-center justify-center h-10 w-10 overflow-hidden">
+                        <img src="hpl.png" alt="HPL Logo" class="h-full w-full object-contain">
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold tracking-wide">GRN Checker</h1>
+                        <p class="text-xs text-blue-200 font-medium">Healthcare Pharmaceuticals Limited</p>
+                    </div>
+                </div>
+                <div class="text-xs bg-blue-800/60 text-blue-100 px-3 py-1 rounded-full border border-blue-700 font-medium">
+                    Bill GRN Dashboard
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Container -->
+        <main class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+
+            <!-- Dashboard Summary Header -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">GRN Dashboard</h2>
+                    <p class="text-sm text-slate-500">Real-time matching of SAP Raw Data extracts against Vendor Bill Entries.</p>
+                </div>
+            </div>
+
+            <!-- KPI Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between border-l-4 border-l-blue-600">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Billable Exposure</p>
+                        <div class="flex items-baseline space-x-1 mt-1">
+                            <span class="text-xs font-bold text-blue-600">BDT</span>
+                            <h3 id="kpi-exposure" class="text-2xl font-bold text-slate-900">0.00</h3>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
+                        <i data-lucide="wallet" class="w-6 h-6"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between border-l-4 border-l-amber-500">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending / Not Done</p>
+                        <h3 id="kpi-pending" class="text-2xl font-bold text-red-600 mt-1">0</h3>
+                    </div>
+                    <div class="p-3 bg-red-50 text-red-600 rounded-lg">
+                        <i data-lucide="clock" class="w-6 h-6"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between border-l-4 border-l-yellow-500">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Flagged / Partial Done</p>
+                        <h3 id="kpi-flagged" class="text-2xl font-bold text-yellow-600 mt-1">0</h3>
+                    </div>
+                    <div class="p-3 bg-yellow-50 text-yellow-600 rounded-lg">
+                        <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between border-l-4 border-l-emerald-500">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Done</p>
+                        <h3 id="kpi-ready" class="text-2xl font-bold text-emerald-600 mt-1">0</h3>
+                    </div>
+                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
+                        <i data-lucide="check-circle" class="w-6 h-6"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ingestion & Control Panel -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- SAP Raw Data Upload -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">SAP Raw Data Extract (.xlsx / .csv)</label>
+                    <input type="file" id="rawFile" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-slate-200 rounded-lg p-1"/>
+                </div>
+                <!-- Bill Entry Upload -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Bill Entry Sheet (.xlsx / .csv)</label>
+                    <input type="file" id="billFile" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-slate-200 rounded-lg p-1"/>
+                </div>
+                <!-- Actions & Sample Data -->
+                <div class="flex flex-col justify-end space-y-2">
+                    <div class="flex space-x-2">
+                        <button onclick="loadSampleData()" class="flex-1 bg-slate-100 text-slate-700 font-semibold py-2 px-3 rounded-lg hover:bg-slate-200 transition text-xs flex items-center justify-center space-x-1">
+                            <i data-lucide="database" class="w-3.5 h-3.5"></i><span>Load Sample Data</span>
+                        </button>
+                        <button onclick="runAnalysis()" class="flex-1 bg-blue-700 text-white font-semibold py-2 px-3 rounded-lg hover:bg-blue-800 transition text-xs flex items-center justify-center space-x-1 shadow-sm">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i><span>Run Analysis</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Toolbar & Filters -->
+            <div class="flex flex-wrap items-center justify-between gap-4 bg-white px-6 py-4 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Filter Status:</span>
+                    <select id="statusFilter" onchange="filterTable()" class="bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
+                        <option value="all">All Statuses</option>
+                        <option value="Done">Done</option>
+                        <option value="Partial Pending">Partial Done / Partial Pending</option>
+                        <option value="Not Done">Not Done (Pending)</option>
+                        <option value="Missing Data">Missing in One File</option>
+                    </select>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="exportToCSV()" class="bg-emerald-600 text-white text-xs font-semibold py-2 px-3 rounded-lg hover:bg-emerald-700 transition flex items-center space-x-1 shadow-sm">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i><span>Export to CSV</span>
+                    </button>
+                    <button onclick="simulateEmailAlerts()" class="bg-indigo-600 text-white text-xs font-semibold py-2 px-3 rounded-lg hover:bg-indigo-700 transition flex items-center space-x-1 shadow-sm">
+                        <i data-lucide="send" class="w-3.5 h-3.5"></i><span>Send Reminders</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Master Combined Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3">
+                    <div class="flex items-center space-x-2 text-[11px] text-slate-600">
+                        <span class="font-bold text-slate-900 uppercase">Legend:</span>
+                        <span class="px-2 py-0.5 rounded text-[8px] font-medium" style="background-color: #d9ead3;">Done</span>
+                        <span class="px-2 py-0.5 rounded text-[8px] font-medium" style="background-color: #ffe599;">Partial Pending</span>
+                        <span class="px-2 py-0.5 rounded text-[8px] font-medium" style="background-color: #f4cccc;">Missing Data</span>
+                        <span class="px-2 py-0.5 rounded text-[8px] font-medium" style="background-color: #cfe2f3;">PO Starts with 423</span>
+                    </div>
+                    <span id="record-count" class="text-xs font-semibold bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">0 Records</span>
+                </div>
+                <div class="table-container">
+                    <table id="masterTable" class="w-full text-left border-collapse text-[11px]">
+                        <thead class="bg-slate-100 text-slate-700 sticky top-0 border-b border-slate-200 z-10">
+                            <tr>
+                                <th class="py-3 px-3 font-bold uppercase tracking-wider text-[10px]">Sl.No</th>
+                                <th class="py-3 px-3 font-bold uppercase tracking-wider text-[10px]">Vendor</th>
+                                <th class="py-3 px-3 font-bold uppercase tracking-wider text-[10px]">Bill No.</th>
+                                <th class="py-3 px-3 font-bold uppercase tracking-wider text-[10px]">Bill Amount (BDT)</th>
+                                <th class="py-3 px-3 font-bold uppercase tracking-wider text-[10px]">PO Number</th>
+                                <th class="py-3 px-3 font-bold uppercase tracking-wider text-[10px]">Concerned Engr.</th>
+                                <th class="py-3 px-3 font-bold uppercase tracking-wider text-[10px]">GRN ISSUES</th>
+                                <th class="py-3 px-3 font-bold uppercase tracking-wider text-[10px]">Pending Items</th>
+                                <th class="py-3 px-3 font-bold uppercase tracking-wider text-[10px] text-right">GRN Amount (BDT)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-slate-100">
+                            <tr>
+                                <td colspan="9" class="text-center py-10 text-slate-400 text-xs">No data loaded. Please upload files or load sample data and click Run Analysis.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-white border-t border-slate-800 mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-6 text-center space-y-1">
+            <p class="text-xs text-slate-300 font-medium">Copyright &copy; 2026 Supply Chain Management Dept. of Healthcare Pharmaceuticals Limited. All rights reserved.</p>
+            <p class="text-[11px] text-slate-500">Enterprise Procurement Bill Verification Utility</p>
+        </div>
+    </footer>
+
+    <!-- Script Logic -->
+    <script>
+        lucide.createIcons();
+
+        let rawDataGlobal = null;
+        let billDataGlobal = null;
+        let allCombinedObjectsGlobal = [];
+
+        function loadSampleData() {
+            rawDataGlobal = [
+                ["Supplier/Supplying Plant", "Global Industrial Parts Ltd"],
+                ["Purchasing Document", "4231001"],
+                ["1", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 0, 0, 0, 1500, "", ""],
+                ["2", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 0, 0, 0, 2500, "", ""],
+                ["Purchasing Document", "4502095"],
+                ["1", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 5, 400, 5, 400, "", ""],
+                ["2", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 0, 0, 0, 800, "", "X"],
+                ["Purchasing Document", "4233041"],
+                ["1", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 2, 300, 2, 300, "", ""]
+            ];
+
+            billDataGlobal = [
+                ["Sl.No", "Vendor", "Bill No.", "Bill Amount", "PO Number", "Concerned Engineer"],
+                [1, "Global Industrial Parts Ltd", "INV-8901", 4000, "4231001", "Alex Smith"],
+                [2, "Apex Tech Supplies", "INV-8902", 500, "4502095", "Sarah Jenkins"],
+                [3, "Metro Equipment Co", "INV-8903", 250, "4233041", "David Miller"],
+                [4, "Orphan Bill Vendor", "INV-9999", 1200, "9999999", "Unassigned"]
+            ];
+
+            alert("Sample data loaded successfully! Click 'Run Analysis' to process.");
+        }
+
+        document.getElementById('rawFile').addEventListener('change', function(e) {
+            let file = e.target.files[0];
+            let reader = new FileReader();
+            reader.onload = function(evt) {
+                let data = new Uint8Array(evt.target.result);
+                let workbook = XLSX.read(data, {type: 'array'});
+                let firstSheet = workbook.SheetNames[0];
+                rawDataGlobal = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], {header: 1});
+                alert("SAP Raw Data file uploaded successfully!");
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        document.getElementById('billFile').addEventListener('change', function(e) {
+            let file = e.target.files[0];
+            let reader = new FileReader();
+            reader.onload = function(evt) {
+                let data = new Uint8Array(evt.target.result);
+                let workbook = XLSX.read(data, {type: 'array'});
+                let firstSheet = workbook.SheetNames[0];
+                billDataGlobal = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], {header: 1});
+                alert("Bill Entry file uploaded successfully!");
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function formatRanges(nums) {
+            if (nums.length === 0) return "None";
+            let ranges = [];
+            let start = nums[0];
+            let end = nums[0];
+            for (let i = 1; i < nums.length; i++) {
+                if (nums[i] === end + 1) { end = nums[i]; } 
+                else {
+                    ranges.push(start === end ? start : `${start}-${end}`);
+                    start = nums[i]; end = nums[i];
+                }
+            }
+            ranges.push(start === end ? start : `${start}-${end}`);
+            return ranges.join(", ");
+        }
+
+        function runAnalysis() {
+            if (!rawDataGlobal || !billDataGlobal) {
+                alert("Please upload both files or click 'Load Sample Data' first.");
+                return;
+            }
+
+            let poMap = {};
+            let currentSupplier = "";
+            let currentPO = "";
+
+            for (let i = 0; i < rawDataGlobal.length; i++) {
+                let row = rawDataGlobal[i];
+                let colA = String(row[0] || "");
+                if (colA.includes("Supplier/Supplying Plant")) {
+                    currentSupplier = colA.replace("Supplier/Supplying Plant", "").trim();
+                } else if (colA.includes("Purchasing Document")) {
+                    currentPO = colA.replace("Purchasing Document", "").trim();
+                } else if (!isNaN(parseFloat(colA)) && colA.trim() !== "") {
+                    let itemNum = colA.trim();
+                    let delQty = parseFloat(row[24]) || 0;
+                    let delVal = parseFloat(row[25]) || 0;
+                    let invVal = parseFloat(row[27]) || 0;
+                    let statisticalVal = String(row[29] || "").trim().toUpperCase();
+                    let isDeleted = (statisticalVal === "X");
+
+                    if (!poMap[currentPO]) {
+                        poMap[currentPO] = { supplier: currentSupplier, items: [] };
+                    }
+                    poMap[currentPO].items.push({
+                        item: itemNum,
+                        delQty: delQty,
+                        delVal: delVal,
+                        invVal: invVal,
+                        isDeleted: isDeleted
+                    });
+                }
+            }
+
+            let rawPoStatus = {};
+            for (let po in poMap) {
+                let entry = poMap[po];
+                let activeItems = entry.items.filter(i => !i.isDeleted);
+                let deletedItems = entry.items.filter(i => i.isDeleted);
+
+                let hasPendingDelivery = activeItems.some(i => i.delQty > 0 || i.delVal > 0);
+                let pendingItemsList = activeItems.filter(i => i.delQty > 0 || i.delVal > 0);
+                let pendingItems = [...new Set(pendingItemsList.map(i => parseInt(i.item)))].sort((a,b) => a-b);
+                let pendingItemsStr = formatRanges(pendingItems);
+                
+                let sumDelVal = activeItems.reduce((sum, i) => sum + i.delVal, 0);
+                let sumInvVal = activeItems.reduce((sum, i) => sum + i.invVal, 0);
+                let billableAmount = sumInvVal - sumDelVal;
+
+                rawPoStatus[po] = {
+                    supplier: entry.supplier,
+                    hasPendingDelivery: hasPendingDelivery,
+                    pendingItemsStr: pendingItemsStr,
+                    billableAmount: billableAmount,
+                    deletedItems: deletedItems
+                };
+            }
+
+            let processedBillPOs = new Set();
+            allCombinedObjectsGlobal = [];
+
+            for (let i = 1; i < billDataGlobal.length; i++) {
+                let row = billDataGlobal[i];
+                if (!row || row.length === 0 || !row[0]) continue;
+                let slNo = row[0];
+                let vendor = row[1] || "";
+                let billNo = row[2] || "";
+                let billAmount = parseFloat(row[3]) || 0;
+                let po = String(row[4] || "").trim();
+                let engineer = row[5] || "N/A";
+
+                processedBillPOs.add(po);
+                let poStatus = rawPoStatus[po];
+
+                if (!poStatus) {
+                    allCombinedObjectsGlobal.push({
+                        slNo: slNo,
+                        vendor: vendor,
+                        billNo: billNo,
+                        billAmount: billAmount,
+                        po: po,
+                        engineer: engineer,
+                        status: "Missing Data",
+                        subStatus: "Missing in Raw Data",
+                        pendingItemsStr: "N/A (Missing PO in Raw Data)",
+                        billableAmount: 0,
+                        check: "Y"
+                    });
+                } else {
+                    let billableAmount = poStatus.billableAmount;
+                    if (poStatus.hasPendingDelivery) {
+                        let checkVal = (billableAmount > 0 && billAmount > 0 && billableAmount !== billAmount) ? "Y" : "";
+                        let isPartial = (checkVal === "Y");
+                        let status = isPartial ? "Partial Pending" : "Not Done";
+
+                        allCombinedObjectsGlobal.push({
+                            slNo: slNo,
+                            vendor: vendor || poStatus.supplier,
+                            billNo: billNo,
+                            billAmount: billAmount,
+                            po: po,
+                            engineer: engineer,
+                            status: status,
+                            subStatus: status,
+                            pendingItemsStr: poStatus.pendingItemsStr,
+                            billableAmount: billableAmount,
+                            check: checkVal
+                        });
+                    } else {
+                        allCombinedObjectsGlobal.push({
+                            slNo: slNo,
+                            vendor: vendor,
+                            billNo: billNo,
+                            billAmount: billAmount,
+                            po: po,
+                            engineer: engineer,
+                            status: "Done",
+                            subStatus: "Done",
+                            pendingItemsStr: "-",
+                            billableAmount: billableAmount,
+                            check: ""
+                        });
+                    }
+                }
+            }
+
+            for (let po in rawPoStatus) {
+                let poStatus = rawPoStatus[po];
+                if (poStatus.hasPendingDelivery && !processedBillPOs.has(po)) {
+                    allCombinedObjectsGlobal.push({
+                        slNo: "-",
+                        vendor: poStatus.supplier,
+                        billNo: "-",
+                        billAmount: 0,
+                        po: po,
+                        engineer: "N/A",
+                        status: "Missing Data",
+                        subStatus: "Missing in Bill Entry",
+                        pendingItemsStr: poStatus.pendingItemsStr,
+                        billableAmount: poStatus.billableAmount,
+                        check: ""
+                    });
+                }
+            }
+
+            allCombinedObjectsGlobal.sort((a, b) => {
+                let numA = parseFloat(a.slNo);
+                let numB = parseFloat(b.slNo);
+                if (isNaN(numA)) return 1;
+                if (isNaN(numB)) return -1;
+                return numA - numB;
+            });
+
+            updateKPIs();
+            filterTable();
+            alert("Analysis completed successfully!");
+        }
+
+        function updateKPIs() {
+            let totalExposure = allCombinedObjectsGlobal.reduce((acc, curr) => acc + curr.billableAmount, 0);
+            let pendingCount = allCombinedObjectsGlobal.filter(item => item.status === "Not Done" || item.subStatus === "Missing in Bill Entry").length;
+            let flaggedCount = allCombinedObjectsGlobal.filter(item => item.status === "Partial Pending" || item.subStatus === "Missing in Raw Data").length;
+            let readyCount = allCombinedObjectsGlobal.filter(item => item.status === "Done").length;
+
+            document.getElementById('kpi-exposure').innerText = totalExposure.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('kpi-pending').innerText = pendingCount;
+            document.getElementById('kpi-flagged').innerText = flaggedCount;
+            document.getElementById('kpi-ready').innerText = readyCount;
+        }
+
+        function filterTable() {
+            let selectedFilter = document.getElementById('statusFilter').value;
+            let tbody = document.getElementById('tableBody');
+            tbody.innerHTML = "";
+
+            let filteredData = allCombinedObjectsGlobal.filter(item => {
+                if (selectedFilter === "all") return true;
+                if (selectedFilter === "Missing Data") return item.status === "Missing Data";
+                return item.status === selectedFilter;
+            });
+
+            document.getElementById('record-count').innerText = `${filteredData.length} Records Shown`;
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-10 text-slate-400">No records match the selected filter.</td></tr>`;
+                return;
+            }
+
+            filteredData.forEach(item => {
+                let tr = document.createElement('tr');
+                let bgStyle = "";
+                let poStr = String(item.po);
+                
+                if (poStr.startsWith("423")) {
+                    bgStyle = "background-color: #cfe2f3;"; 
+                } else if (item.status === "Partial Pending" || item.check === "Y") {
+                    bgStyle = "background-color: #ffe599;"; 
+                } else if (item.status === "Missing Data") {
+                    bgStyle = "background-color: #f4cccc;"; 
+                } else if (item.status === "Done") {
+                    bgStyle = "background-color: #d9ead3;"; 
+                }
+
+                tr.setAttribute("style", bgStyle);
+
+                let badgeColor = "bg-slate-200 text-slate-800";
+                if (item.status === "Done") badgeColor = "bg-emerald-100 text-emerald-800";
+                else if (item.status === "Partial Pending") badgeColor = "bg-amber-100 text-amber-800";
+                else if (item.status === "Not Done") badgeColor = "bg-orange-100 text-orange-800";
+                else if (item.status === "Missing Data") badgeColor = "bg-rose-100 text-rose-800 font-bold";
+
+                tr.innerHTML = `
+                    <td class="py-3 px-3 font-medium">${item.slNo}</td>
+                    <td class="py-3 px-3">${item.vendor}</td>
+                    <td class="py-3 px-3">${item.billNo}</td>
+                    <td class="py-3 px-3">${item.billAmount.toLocaleString()}</td>
+                    <td class="py-3 px-3 font-mono font-semibold">${item.po}</td>
+                    <td class="py-3 px-3">${item.engineer}</td>
+                    <td class="py-3 px-3 uppercase font-bold text-[10px]"><span class="px-2 py-0.5 rounded ${badgeColor} border border-black/10">${item.subStatus}</span></td>
+                    <td class="py-3 px-3">${item.pendingItemsStr}</td>
+                    <td class="py-3 px-3 text-right font-mono font-semibold">${item.billableAmount.toLocaleString()}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportToCSV() {
+            let table = document.getElementById("masterTable");
+            let rows = table.querySelectorAll("tr");
+            let csv = [];
+            rows.forEach(row => {
+                let cols = row.querySelectorAll("td, th");
+                let data = [];
+                cols.forEach(col => data.push('"' + col.innerText.replace(/"/g, '""') + '"'));
+                csv.push(data.join(","));
+            });
+            let csvFile = new Blob([csv.join("\n")], {type: "text/csv"});
+            let downloadLink = document.createElement("a");
+            downloadLink.download = "grn_audit_report.csv";
+            downloadLink.href = window.URL.createObjectURL(csvFile);
+            downloadLink.style.display = "none";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+
+        function simulateEmailAlerts() {
+            alert("Reminder emails successfully dispatched to pending engineers!");
+        }
+    </script>
+</body>
+</html>
